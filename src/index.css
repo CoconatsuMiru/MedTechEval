@@ -1,1 +1,23 @@
 @import "tailwindcss";
+
+@keyframes toast-fade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+}
+
+.animate-toast {
+  animation: toast-fade 3s ease forwards;
+}

@@ -30,9 +30,14 @@ function Student() {
           <Button type="submit">Enter Assessment Room</Button>
         </form>
 
-        <Link to="/" className="block mt-6 text-sm text-blue-600 hover:underline">
-          ← Back to Home
-        </Link>
+        <div className="flex justify-between mt-6 text-sm">
+          <Link to="/student/history" className="text-blue-600 hover:underline">
+            View My History
+          </Link>
+          <Link to="/" className="text-blue-600 hover:underline">
+            ← Back to Home
+          </Link>
+        </div>
       </Card>
     </div>
   );

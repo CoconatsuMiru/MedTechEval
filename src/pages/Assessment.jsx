@@ -20,6 +20,7 @@ function Assessment() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [score, setScore] = useState(0)
+  const [answers, setAnswers] = useState([]) // [{ category, correct }]
   const [showResults, setShowResults] = useState(false)
   const [saveError, setSaveError] = useState('')
 
@@ -34,7 +35,6 @@ function Assessment() {
       setNotFound(true)
     } else {
       setReviewer(data)
-      // Pre-fill name field from their profile, but let them edit it
       setStudentName(profile?.full_name ?? '')
     }
     setLoading(false)
@@ -97,9 +97,16 @@ function Assessment() {
   function handleSelect(choice) {
     if (selectedAnswer) return
     setSelectedAnswer(choice)
-    if (choice === question.correct_answer) {
+
+    const isCorrect = choice === question.correct_answer
+    if (isCorrect) {
       setScore(score + 1)
     }
+
+    setAnswers((prev) => [
+      ...prev,
+      { category: question.category ?? 'Uncategorized', correct: isCorrect }
+    ])
   }
 
   async function handleNext() {
@@ -127,8 +134,20 @@ function Assessment() {
     const threshold = reviewer.passing_threshold ?? 70
     const passed = percentage >= threshold
 
+    // Group answers by category: { category: { correct, total } }
+    const categoryStats = {}
+    answers.forEach(({ category, correct }) => {
+      if (!categoryStats[category]) {
+        categoryStats[category] = { correct: 0, total: 0 }
+      }
+      categoryStats[category].total += 1
+      if (correct) categoryStats[category].correct += 1
+    })
+    const categoryEntries = Object.entries(categoryStats)
+    const hasCategories = categoryEntries.some(([cat]) => cat !== 'Uncategorized')
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-10">
         <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
           <h1 className="text-xl font-bold text-slate-800 mb-1">Results</h1>
           <p className="text-slate-500 mb-4">{reviewer.title}</p>
@@ -146,12 +165,42 @@ function Assessment() {
           >
             {passed ? '✅ Passed' : '❌ Not Passed'}
           </span>
+
+          {hasCategories && (
+            <div className="text-left mt-4 mb-4">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                Breakdown by Category
+              </p>
+              <div className="flex flex-col gap-2">
+                {categoryEntries.map(([category, stats]) => {
+                  const catPct = Math.round((stats.correct / stats.total) * 100)
+                  return (
+                    <div key={category}>
+                      <div className="flex justify-between text-sm text-slate-700 mb-1">
+                        <span>{category}</span>
+                        <span className="font-medium">
+                          {stats.correct}/{stats.total} ({catPct}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5">
+                        <div
+                          className="bg-blue-500 h-1.5 rounded-full"
+                          style={{ width: `${catPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {saveError && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
               {saveError}
             </p>
           )}
-          <br />
+
           <Link to="/student" className="text-blue-600 hover:underline text-sm">
             ← Back to Student Portal
           </Link>
@@ -169,6 +218,12 @@ function Assessment() {
             Question {currentIndex + 1} of {quizQuestions.length}
           </span>
         </div>
+
+        {question.category && (
+          <span className="inline-block text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded mb-2">
+            {question.category}
+          </span>
+        )}
 
         <h2 className="text-xl font-semibold text-slate-800 mb-4">{question.question}</h2>
 

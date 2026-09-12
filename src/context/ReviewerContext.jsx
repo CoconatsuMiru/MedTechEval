@@ -12,7 +12,6 @@ function generateCode() {
 export function ReviewerProvider({ children }) {
   const { user } = useAuth()
 
-  // Fetch all reviewers owned by the currently logged-in teacher
   async function fetchTeacherReviewers() {
     const { data, error } = await supabase
       .from('reviewers')
@@ -24,7 +23,6 @@ export function ReviewerProvider({ children }) {
     return data
   }
 
-  // Fetch one reviewer by its access code, including its questions
   async function fetchReviewerByCode(code) {
     const { data, error } = await supabase
       .from('reviewers')
@@ -32,11 +30,10 @@ export function ReviewerProvider({ children }) {
       .eq('code', code)
       .single()
 
-    if (error) return null // no matching reviewer (or RLS blocked it)
+    if (error) return null
     return data
   }
 
-  // Create a new reviewer + its questions, owned by the current teacher
   async function createReviewer({ title, passingThreshold, questions }) {
     const code = generateCode()
 
@@ -71,7 +68,6 @@ export function ReviewerProvider({ children }) {
     return code
   }
 
-  // Update a reviewer's title/passing threshold
   async function updateReviewer(reviewerId, updates) {
     const { error } = await supabase
       .from('reviewers')
@@ -81,7 +77,6 @@ export function ReviewerProvider({ children }) {
     if (error) throw error
   }
 
-  // Delete a reviewer (questions + results cascade automatically via the DB)
   async function deleteReviewer(reviewerId) {
     const { error } = await supabase
       .from('reviewers')
@@ -91,7 +86,6 @@ export function ReviewerProvider({ children }) {
     if (error) throw error
   }
 
-  // Record a completed student attempt
   async function recordResult({ reviewerId, studentName, score, totalQuestions }) {
     const { error } = await supabase
       .from('results')
@@ -106,12 +100,23 @@ export function ReviewerProvider({ children }) {
     if (error) throw error
   }
 
-  // Fetch all results for a given reviewer (used by the Teacher dashboard)
   async function fetchResultsForReviewer(reviewerId) {
     const { data, error } = await supabase
       .from('results')
       .select('*')
       .eq('reviewer_id', reviewerId)
+      .order('completed_at', { ascending: false })
+
+    if (error) throw error
+    return data
+  }
+
+  // Fetch all of the current student's past attempts, across every reviewer
+  async function fetchStudentResults() {
+    const { data, error } = await supabase
+      .from('results')
+      .select('id, score, total_questions, completed_at, reviewers(title, code, passing_threshold)')
+      .eq('student_id', user.id)
       .order('completed_at', { ascending: false })
 
     if (error) throw error
@@ -125,7 +130,8 @@ export function ReviewerProvider({ children }) {
     updateReviewer,
     deleteReviewer,
     recordResult,
-    fetchResultsForReviewer
+    fetchResultsForReviewer,
+    fetchStudentResults
   }
 
   return (

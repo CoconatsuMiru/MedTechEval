@@ -1,8 +1,22 @@
+import { useEffect, useRef } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 function ProtectedRoute({ allowedRole, children }) {
   const { user, profile, loading } = useAuth()
+  const { showToast } = useToast()
+  const hasShownToast = useRef(false)
+
+  const wrongRole = !loading && user && allowedRole && profile?.role !== allowedRole
+
+  useEffect(() => {
+    if (wrongRole && !hasShownToast.current) {
+      const label = allowedRole === 'teacher' ? 'Teachers only' : 'Students only'
+      showToast(label)
+      hasShownToast.current = true
+    }
+  }, [wrongRole])
 
   if (loading) {
     return (
@@ -16,8 +30,7 @@ function ProtectedRoute({ allowedRole, children }) {
     return <Navigate to="/login" replace />
   }
 
-  if (allowedRole && profile?.role !== allowedRole) {
-    // Logged in, but wrong role for this page — send them to their own portal instead
+  if (wrongRole) {
     return <Navigate to={profile?.role === 'teacher' ? '/teacher' : '/student'} replace />
   }
 
