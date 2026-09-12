@@ -8,8 +8,6 @@ import Home from './pages/Home'
 import Student from './pages/Student'
 import Teacher from './pages/Teacher'
 import Assessment from './pages/Assessment'
-import CreateReviewer from './pages/CreateReviewer'
-import EditReviewer from './pages/EditReviewer'
 import SignUp from './pages/SignUp'
 import Login from './pages/Login'
 import StudentHistory from './pages/StudentHistory'
@@ -47,22 +45,6 @@ function App() {
               element={
                 <ProtectedRoute allowedRole="teacher">
                   <Teacher />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teacher/create"
-              element={
-                <ProtectedRoute allowedRole="teacher">
-                  <CreateReviewer />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teacher/edit/:code"
-              element={
-                <ProtectedRoute allowedRole="teacher">
-                  <EditReviewer />
                 </ProtectedRoute>
               }
             />

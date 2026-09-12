@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import Card from '../components/Card'
 import Button from '../components/Button'
+import TopBar from '../components/TopBar'
 
 function Student() {
   const [code, setCode] = useState('')
@@ -14,31 +14,30 @@ function Student() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <Card className="max-w-md w-full">
-        <h1 className="text-2xl font-bold text-slate-800 mb-1">Student Portal</h1>
-        <p className="text-slate-600 mb-6">Enter the review code your teacher gave you.</p>
+    <div className="min-h-screen bg-app">
+      <TopBar roleLabel="Student" />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <div className="max-w-md mx-auto px-4 py-16">
+        <h1 className="text-xl font-bold text-ink-950 mb-1">Enter Review Code</h1>
+        <p className="text-sm text-ink-500 mb-6">
+          Enter the code your instructor gave you to begin an assessment.
+        </p>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 mb-6">
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="e.g. MED-8942"
-            className="border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-slate-300 rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-brand-700"
           />
           <Button type="submit">Enter Assessment Room</Button>
         </form>
 
-        <div className="flex justify-between mt-6 text-sm">
-          <Link to="/student/history" className="text-blue-600 hover:underline">
-            View My History
-          </Link>
-          <Link to="/" className="text-blue-600 hover:underline">
-            ← Back to Home
-          </Link>
-        </div>
-      </Card>
+        <Link to="/student/history" className="text-sm text-brand-700 hover:underline">
+          View my history →
+        </Link>
+      </div>
     </div>
   );
 }
