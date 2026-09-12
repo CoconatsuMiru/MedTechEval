@@ -1,32 +1,39 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import Card from '../components/Card'
+import Button from '../components/Button'
 
 function Student() {
   const [code, setCode] = useState('')
   const navigate = useNavigate()
 
   function handleSubmit(e) {
-    e.preventDefault() // stops the page from reloading on submit
-    if (code.trim() === '') return // ignore empty submissions
+    e.preventDefault()
+    if (code.trim() === '') return
     navigate(`/student/assessment/${code.trim()}`)
   }
 
   return (
-    <div>
-      <h1>Student Portal</h1>
-      <p>Enter the review code your teacher gave you.</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <Card className="max-w-md w-full">
+        <h1 className="text-2xl font-bold text-slate-800 mb-1">Student Portal</h1>
+        <p className="text-slate-600 mb-6">Enter the review code your teacher gave you.</p>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="e.g. MED-8942"
-        />
-        <button type="submit">Enter Assessment Room</button>
-      </form>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="e.g. MED-8942"
+            className="border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <Button type="submit">Enter Assessment Room</Button>
+        </form>
 
-      <Link to="/">← Back to Home</Link>
+        <Link to="/" className="block mt-6 text-sm text-blue-600 hover:underline">
+          ← Back to Home
+        </Link>
+      </Card>
     </div>
   );
 }
