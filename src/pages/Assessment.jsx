@@ -5,6 +5,45 @@ import { useAuth } from '../context/AuthContext'
 import { shuffleArray } from '../utils/shuffle'
 import Button from '../components/Button'
 import TopBar from '../components/TopBar'
+import BackLink from '../components/BackLink'
+
+const messagesByTier = {
+  high: [
+    "Excellent work — that's a strong, confident result.",
+    "Outstanding! You clearly know this material well.",
+    "Sharp performance. This kind of consistency shows real mastery.",
+    "Great job — you're more than ready for the real thing."
+  ],
+  pass: [
+    "Solid pass — nice work getting through this one.",
+    "You cleared the bar. A bit more review and you'll be even sharper.",
+    "Good result! Worth revisiting the questions you missed to lock it in.",
+    "Nice job passing — keep building on this."
+  ],
+  close: [
+    "So close! A little more review and you'll clear it next time.",
+    "You're right on the edge — a focused re-read of the misses will help a lot.",
+    "Not far off at all. Review the rationale on the ones you missed and try again.",
+    "Almost there — this is a great sign you're on the right track."
+  ],
+  low: [
+    "This one's tough material — take some time to review and come back stronger.",
+    "Don't worry, everyone starts somewhere. Review the rationale and try again.",
+    "This is a learning opportunity, not a verdict. Go over the material and retake it.",
+    "Keep going — reviewing your misses now will make the next attempt much easier."
+  ]
+}
+
+function pickMessage(percentage, passed) {
+  let tier
+  if (percentage >= 90) tier = 'high'
+  else if (passed) tier = 'pass'
+  else if (percentage >= 50) tier = 'close'
+  else tier = 'low'
+
+  const pool = messagesByTier[tier]
+  return pool[Math.floor(Math.random() * pool.length)]
+}
 
 function Assessment() {
   const { code } = useParams()
@@ -24,6 +63,8 @@ function Assessment() {
   const [answers, setAnswers] = useState([])
   const [showResults, setShowResults] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [encouragement, setEncouragement] = useState('')
+  const [showBreakdown, setShowBreakdown] = useState(false)
 
   useEffect(() => {
     loadReviewer()
@@ -57,16 +98,13 @@ function Assessment() {
           <p className="text-sm text-ink-500 mb-4">
             No assessment found for code: <strong className="font-mono">{code}</strong>
           </p>
-          <Link to="/student" className="text-sm text-brand-700 hover:underline">
-            ← Try a different code
-          </Link>
+          <BackLink to="/student">Try a different code</BackLink>
         </div>
       </div>
     );
   }
 
   function handleStart() {
-    if (!studentName.trim()) return
     setQuizQuestions(shuffleArray(reviewer.questions))
     setHasStarted(true)
   }
@@ -84,16 +122,23 @@ function Assessment() {
             <p className="text-sm text-ink-500 mb-4">
               {reviewer.questions.length} questions · Passing score {reviewer.passing_threshold ?? 70}%
             </p>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Confirm your name to begin
-            </label>
-            <input
-              type="text"
-              value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
-              placeholder="Your name"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-brand-700"
-            />
+
+            {reviewer.instructions && (
+              <div className="bg-brand-50 border border-blue-100 rounded-lg px-4 py-3 mb-4">
+                <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide mb-1">
+                  Instructions
+                </p>
+                <p className="text-sm text-ink-950 whitespace-pre-line leading-relaxed">
+                  {reviewer.instructions}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-sm text-ink-500 mb-4 pb-4 border-b border-slate-100">
+              <span>Starting as</span>
+              <span className="font-medium text-ink-950">{studentName}</span>
+            </div>
+
             <Button onClick={handleStart} className="w-full">
               Start Assessment
             </Button>
@@ -124,6 +169,10 @@ function Assessment() {
 
   async function handleNext() {
     if (isLastQuestion) {
+      const finalPercentage = Math.round((score / quizQuestions.length) * 100)
+      const finalPassed = finalPercentage >= (reviewer.passing_threshold ?? 70)
+      setEncouragement(pickMessage(finalPercentage, finalPassed))
+
       try {
         await recordResult({
           reviewerId: reviewer.id,
@@ -155,8 +204,17 @@ function Assessment() {
       categoryStats[category].total += 1
       if (correct) categoryStats[category].correct += 1
     })
+
     const categoryEntries = Object.entries(categoryStats)
-    const hasCategories = categoryEntries.some(([cat]) => cat !== 'Uncategorized')
+      .filter(([cat]) => cat !== 'Uncategorized')
+      .map(([category, stats]) => ({
+        category,
+        pct: Math.round((stats.correct / stats.total) * 100),
+        ...stats
+      }))
+      .sort((a, b) => a.pct - b.pct)
+
+    const hasCategories = categoryEntries.length > 0
 
     return (
       <div className="min-h-screen bg-app">
@@ -188,39 +246,74 @@ function Assessment() {
               <span className="font-bold">{score}/{quizQuestions.length}</span>
             </p>
             <span
-              className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${
+              className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-4 ${
                 passed ? 'bg-status-pass-bg text-status-pass' : 'bg-status-fail-bg text-status-fail'
               }`}
             >
               {passed ? '✅ Passed' : '❌ Not Passed'}
             </span>
 
+            {encouragement && (
+              <p className="text-sm text-ink-950 bg-brand-50 border border-blue-100 rounded-lg px-4 py-3 mb-2 leading-relaxed">
+                {encouragement}
+              </p>
+            )}
+
             {hasCategories && (
-              <div className="text-left mt-6 pt-6 border-t border-slate-100">
-                <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-3">
-                  Breakdown by Category
-                </p>
-                <div className="flex flex-col gap-3">
-                  {categoryEntries.map(([category, stats]) => {
-                    const catPct = Math.round((stats.correct / stats.total) * 100)
-                    return (
-                      <div key={category}>
-                        <div className="flex justify-between text-sm text-ink-950 mb-1">
-                          <span>{category}</span>
-                          <span className="font-medium">
-                            {stats.correct}/{stats.total} ({catPct}%)
-                          </span>
+              <div className="text-left mt-4 pt-4 border-t border-slate-100">
+                <button
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                  className="w-full flex items-center justify-between text-sm"
+                >
+                  <span className="text-xs font-semibold text-ink-500 uppercase tracking-wide">
+                    Breakdown by Category
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-ink-500 transition-transform ${showBreakdown ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showBreakdown && (
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    {categoryEntries.map(({ category, correct, total, pct }) => {
+                      const isStrong = pct >= 70
+                      const isWeak = pct < 50
+                      return (
+                        <div
+                          key={category}
+                          className={`rounded-lg border px-3 py-2 ${
+                            isWeak
+                              ? 'bg-status-fail-bg border-red-200'
+                              : isStrong
+                              ? 'bg-status-pass-bg border-green-200'
+                              : 'bg-slate-50 border-slate-200'
+                          }`}
+                        >
+                          <p className="text-xs font-medium text-ink-950 truncate mb-0.5">
+                            {category}
+                          </p>
+                          <p
+                            className={`text-xs font-semibold ${
+                              isWeak
+                                ? 'text-status-fail'
+                                : isStrong
+                                ? 'text-status-pass'
+                                : 'text-ink-500'
+                            }`}
+                          >
+                            {correct}/{total} · {pct}%
+                          </p>
                         </div>
-                        <div className="w-full bg-slate-100 rounded-full h-1.5">
-                          <div
-                            className="bg-brand-700 h-1.5 rounded-full"
-                            style={{ width: `${catPct}%` }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -230,9 +323,9 @@ function Assessment() {
               </p>
             )}
 
-            <Link to="/student" className="inline-block mt-6 text-sm text-brand-700 hover:underline">
-              ← Back to Student Portal
-            </Link>
+            <div className="mt-6 flex justify-center">
+              <BackLink to="/student">Back to Student Portal</BackLink>
+            </div>
           </div>
         </div>
       </div>

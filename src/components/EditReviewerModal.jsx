@@ -7,6 +7,7 @@ function EditReviewerModal({ reviewer, onClose, onSaved }) {
   const { updateReviewer } = useReviewers()
   const [title, setTitle] = useState(reviewer.title)
   const [passingThreshold, setPassingThreshold] = useState(reviewer.passing_threshold)
+  const [instructions, setInstructions] = useState(reviewer.instructions ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -18,9 +19,10 @@ function EditReviewerModal({ reviewer, onClose, onSaved }) {
     try {
       await updateReviewer(reviewer.id, {
         title: title.trim(),
-        passing_threshold: Number(passingThreshold)
+        passing_threshold: Number(passingThreshold),
+        instructions: instructions.trim() || null
       })
-      onSaved() // parent closes the modal + refreshes the list
+      onSaved()
     } catch (err) {
       setError('Failed to save changes. Please try again.')
       console.error(err)
@@ -56,6 +58,18 @@ function EditReviewerModal({ reviewer, onClose, onSaved }) {
             value={passingThreshold}
             onChange={(e) => setPassingThreshold(e.target.value)}
             className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-700"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Instructions for Students (optional)
+          </label>
+          <textarea
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            rows={3}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700 resize-none"
           />
         </div>
 

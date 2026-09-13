@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import QuestionCardCarousel from '../components/QuestionCardCarousel'
 
 function Home() {
   const { user, profile, loading, logout } = useAuth()
@@ -27,14 +28,17 @@ function Home() {
                   <p className="text-sm text-ink-950 font-medium">{profile?.full_name}</p>
                   <p className="text-xs text-ink-500 capitalize">{profile?.role}</p>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
+                <div className="flex items-center gap-2">
                   <Link
                     to={profile?.role === 'teacher' ? '/teacher' : '/student'}
-                    className="text-brand-700 font-medium hover:underline"
+                    className="text-sm font-medium bg-brand-900 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg transition-colors"
                   >
                     Continue →
                   </Link>
-                  <button onClick={logout} className="text-ink-500 hover:underline">
+                  <button
+                    onClick={logout}
+                    className="text-sm font-medium text-ink-500 hover:text-ink-950 border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-lg transition-colors"
+                  >
                     Log out
                   </button>
                 </div>
@@ -73,7 +77,7 @@ function Home() {
           </div>
         </div>
 
-        {/* Right: grounded visual — a live-looking question card */}
+        {/* Right: rotating example question cards */}
         <div className="hidden lg:flex items-center justify-center bg-ink-950 px-16 py-16 relative overflow-hidden">
           <div
             className="absolute inset-0 opacity-[0.07]"
@@ -82,27 +86,8 @@ function Home() {
               backgroundSize: '20px 20px'
             }}
           />
-          <div className="relative bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-medium bg-brand-50 text-brand-900 px-2 py-1 rounded">
-                Cardiac Safety
-              </span>
-              <span className="text-xs font-mono text-ink-500">Q3 of 12</span>
-            </div>
-            <p className="font-semibold text-ink-950 mb-4 leading-snug">
-              What is the required switchover latency for a fail-safe algorithmic fallback?
-            </p>
-            <div className="flex flex-col gap-2 mb-4">
-              <div className="text-sm px-3 py-2 rounded-lg bg-status-pass-bg text-status-pass font-medium border border-green-200">
-                ✓ &lt; 50ms, deterministic
-              </div>
-              <div className="text-sm px-3 py-2 rounded-lg border border-slate-200 text-ink-500">
-                Discretionary, within 10s
-              </div>
-            </div>
-            <p className="text-xs text-ink-500 italic border-t border-slate-100 pt-3">
-              Deterministic switchover prevents dropped detections during signal degradation.
-            </p>
+          <div className="relative">
+            <QuestionCardCarousel />
           </div>
         </div>
       </div>

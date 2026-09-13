@@ -15,7 +15,7 @@ export function ReviewerProvider({ children }) {
   async function fetchTeacherReviewers() {
     const { data, error } = await supabase
       .from('reviewers')
-      .select('id, code, title, passing_threshold, questions(id)')
+      .select('id, code, title, passing_threshold, instructions, created_at, questions(id)')
       .eq('teacher_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -26,7 +26,7 @@ export function ReviewerProvider({ children }) {
   async function fetchReviewerByCode(code) {
     const { data, error } = await supabase
       .from('reviewers')
-      .select('id, code, title, passing_threshold, questions(*)')
+      .select('id, code, title, passing_threshold, instructions, questions(*)')
       .eq('code', code)
       .single()
 
@@ -34,7 +34,7 @@ export function ReviewerProvider({ children }) {
     return data
   }
 
-  async function createReviewer({ title, passingThreshold, questions }) {
+  async function createReviewer({ title, passingThreshold, instructions, questions }) {
     const code = generateCode()
 
     const { data: reviewer, error: reviewerError } = await supabase
@@ -43,6 +43,7 @@ export function ReviewerProvider({ children }) {
         code,
         title,
         passing_threshold: passingThreshold,
+        instructions: instructions?.trim() || null,
         teacher_id: user.id
       })
       .select()
@@ -111,7 +112,6 @@ export function ReviewerProvider({ children }) {
     return data
   }
 
-  // Fetch all of the current student's past attempts, across every reviewer
   async function fetchStudentResults() {
     const { data, error } = await supabase
       .from('results')
