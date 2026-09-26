@@ -15,7 +15,6 @@ function EditReviewerModal({ reviewer, onClose, onSaved }) {
     e.preventDefault()
     setSaving(true)
     setError('')
-
     try {
       await updateReviewer(reviewer.id, {
         title: title.trim(),
@@ -33,64 +32,27 @@ function EditReviewerModal({ reviewer, onClose, onSaved }) {
 
   return (
     <Modal onClose={onClose}>
-      <h2 className="text-lg font-bold text-ink-950 mb-1">Edit Reviewer</h2>
-      <p className="text-xs text-ink-500 font-mono mb-4">{reviewer.code}</p>
-
+      <h2 className="text-lg font-bold text-ink-950 mb-4">Edit Chapter</h2>
       <form onSubmit={handleSave} className="flex flex-col gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-700"
-          />
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-700" />
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Passing Threshold (%)
-          </label>
-          <input
-            type="number"
-            min="0"
-            max="100"
-            value={passingThreshold}
-            onChange={(e) => setPassingThreshold(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-700"
-          />
+          <label className="block text-sm font-medium text-slate-700 mb-1">Passing Threshold (%)</label>
+          <input type="number" min="0" max="100" value={passingThreshold} onChange={(e) => setPassingThreshold(e.target.value)}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-700" />
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Instructions for Students (optional)
-          </label>
-          <textarea
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            rows={3}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700 resize-none"
-          />
+          <label className="block text-sm font-medium text-slate-700 mb-1">Instructions for Students (optional)</label>
+          <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={3}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-700 resize-none" />
         </div>
-
-        {error && (
-          <p className="text-sm text-status-fail bg-status-fail-bg border border-red-200 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
-
+        {error && <p className="text-sm text-status-fail bg-status-fail-bg border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         <div className="flex gap-3">
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="text-sm text-ink-500 hover:underline disabled:opacity-50"
-          >
-            Cancel
-          </button>
+          <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
+          <button type="button" onClick={onClose} disabled={saving} className="text-sm text-ink-500 hover:underline disabled:opacity-50">Cancel</button>
         </div>
       </form>
     </Modal>

@@ -7,6 +7,8 @@ import Toast from './components/Toast'
 import Home from './pages/Home'
 import Student from './pages/Student'
 import Teacher from './pages/Teacher'
+import ManageBookChapters from './pages/ManageBookChapters'
+import BookChapters from './pages/BookChapters'
 import Assessment from './pages/Assessment'
 import SignUp from './pages/SignUp'
 import Login from './pages/Login'
@@ -23,40 +25,14 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/login" element={<Login />} />
 
-            <Route
-              path="/student"
-              element={
-                <ProtectedRoute allowedRole="student">
-                  <Student />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/student/history"
-              element={
-                <ProtectedRoute allowedRole="student">
-                  <StudentHistory />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/student" element={<ProtectedRoute allowedRole="student"><Student /></ProtectedRoute>} />
+            <Route path="/student/book/:code" element={<ProtectedRoute allowedRole="student"><BookChapters /></ProtectedRoute>} />
+            <Route path="/student/history" element={<ProtectedRoute allowedRole="student"><StudentHistory /></ProtectedRoute>} />
 
-            <Route
-              path="/teacher"
-              element={
-                <ProtectedRoute allowedRole="teacher">
-                  <Teacher />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/teacher" element={<ProtectedRoute allowedRole="teacher"><Teacher /></ProtectedRoute>} />
+            <Route path="/teacher/books/:bookId" element={<ProtectedRoute allowedRole="teacher"><ManageBookChapters /></ProtectedRoute>} />
 
-            <Route
-              path="/student/assessment/:code"
-              element={
-                <ProtectedRoute>
-                  <Assessment />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/student/assessment/:reviewerId" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
           </Routes>
         </ReviewerProvider>
       </ToastProvider>
