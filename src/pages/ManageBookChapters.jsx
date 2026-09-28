@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { Plus, Pencil, Trash2, ChevronDown, ListChecks, Target, Users, BookOpen, CircleAlert } from 'lucide-react'
 import { useReviewers } from '../context/ReviewerContext'
 import { useToast } from '../context/ToastContext'
 import TopBar from '../components/TopBar'
 import BackLink from '../components/BackLink'
 import EditReviewerModal from '../components/EditReviewerModal'
 import CreateChapterModal from '../components/CreateChapterModal'
+import ConfirmModal from '../components/ConfirmModal'
 
 function ManageBookChapters() {
   const { bookId } = useParams()
@@ -20,6 +22,7 @@ function ManageBookChapters() {
   const [expandedIds, setExpandedIds] = useState(new Set())
   const [editingChapter, setEditingChapter] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [deletingChapter, setDeletingChapter] = useState(null) // { id, title } or null
 
   useEffect(() => { loadData() }, [bookId])
 
@@ -40,16 +43,11 @@ function ManageBookChapters() {
     } finally { setLoading(false) }
   }
 
-  async function handleDelete(chapterId, title) {
-    const confirmed = window.confirm(`Delete "${title}"? This also removes its student results. This cannot be undone.`)
-    if (!confirmed) return
-    try {
-      await deleteReviewer(chapterId)
-      await loadData()
-    } catch (err) {
-      alert('Failed to delete chapter. Please try again.')
-      console.error(err)
-    }
+  async function handleConfirmDelete() {
+    await deleteReviewer(deletingChapter.id) // if this throws, ConfirmModal shows the error
+    setDeletingChapter(null)
+    showToast('Chapter deleted')
+    await loadData()
   }
 
   function toggleExpanded(id) {
@@ -77,57 +75,76 @@ function ManageBookChapters() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-4"><BackLink to="/teacher">Back to Books</BackLink></div>
 
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-bold text-ink-950">{book?.title ?? 'Book'}</h1>
-          <button onClick={() => setIsCreating(true)} className="bg-brand-900 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            + Add Chapter
+        <div className="bg-linear-to-br from-brand-900 to-sky-600 rounded-2xl p-6 text-white shadow-md mb-6 flex items-center justify-between gap-4 animate-fade-up">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-14 h-14 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+              <BookOpen className="w-7 h-7" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold leading-snug">{book?.title ?? 'Book'}</h1>
+              {book && <span className="inline-block text-xs font-mono bg-white/15 px-2 py-0.5 rounded mt-1">{book.code}</span>}
+            </div>
+          </div>
+          <button onClick={() => setIsCreating(true)} className="inline-flex items-center gap-2 bg-white text-brand-900 hover:bg-blue-50 text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors flex-shrink-0">
+            <Plus className="w-4 h-4" /> Add Chapter
           </button>
         </div>
-        {book && <span className="text-xs font-mono bg-brand-50 text-brand-900 px-2 py-0.5 rounded inline-block mb-6">{book.code}</span>}
 
-        {error && <p className="mb-4 text-sm text-status-fail bg-status-fail-bg border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-        {chapters.length === 0 && !error && <p className="text-sm text-ink-500">No chapters yet — add your first one.</p>}
+        {error && (
+          <p className="flex items-center gap-2 mb-4 text-sm text-status-fail bg-status-fail-bg border border-red-200 rounded-lg px-3 py-2">
+            <CircleAlert className="w-4 h-4" /> {error}
+          </p>
+        )}
+        {chapters.length === 0 && !error && (
+          <div className="border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center bg-white/60">
+            <ListChecks className="w-8 h-8 text-ink-500 mx-auto mb-2" />
+            <p className="text-sm text-ink-500">No chapters yet — add your first one.</p>
+          </div>
+        )}
 
         <div className="grid sm:grid-cols-2 gap-4">
-          {chapters.map((chapter) => {
+          {chapters.map((chapter, i) => {
             const results = resultsByChapter[chapter.id] ?? []
             const isExpanded = expandedIds.has(chapter.id)
             const attemptCount = results.length
             const avgPct = attemptCount === 0 ? null : Math.round(results.reduce((s, r) => s + (r.score / r.total_questions) * 100, 0) / attemptCount)
 
             return (
-              <div key={chapter.id} className="bg-white border border-slate-200 rounded-lg p-5 flex flex-col">
-                <div className="flex items-start justify-between mb-1">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-ink-950 truncate">{chapter.title}</h3>
-                    <p className="text-xs text-ink-500 mt-0.5">{chapter.questions.length} questions · Pass {chapter.passing_threshold}%</p>
+              <div key={chapter.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
+                <div className="flex items-start gap-3 mb-2">
+                  <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-700 font-bold text-sm flex items-center justify-center flex-shrink-0">{i + 1}</div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-ink-950 leading-snug">{chapter.title}</h3>
+                    <div className="flex items-center gap-3 text-xs text-ink-500 mt-1">
+                      <span className="inline-flex items-center gap-1"><ListChecks className="w-3.5 h-3.5" />{chapter.questions.length} in bank</span>
+                      <span className="inline-flex items-center gap-1"><Target className="w-3.5 h-3.5" />Pass {chapter.passing_threshold}%</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <button onClick={() => setEditingChapter(chapter)} title="Edit"
                       className="p-1.5 rounded-md text-ink-500 hover:text-brand-700 hover:bg-brand-50 transition-colors">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
-                      </svg>
+                      <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(chapter.id, chapter.title)} title="Delete"
+                    <button onClick={() => setDeletingChapter({ id: chapter.id, title: chapter.title })} title="Delete"
                       className="p-1.5 rounded-md text-ink-500 hover:text-status-fail hover:bg-status-fail-bg transition-colors">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.166L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.166m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                      </svg>
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-auto border-t border-slate-100 pt-3">
                   {attemptCount === 0 ? (
-                    <span className="text-xs text-ink-500 bg-slate-50 border border-slate-200 rounded px-2 py-1">No attempts yet</span>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-ink-500 bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                      <Users className="w-3.5 h-3.5" /> No attempts yet
+                    </span>
                   ) : (
                     <>
                       <button onClick={() => toggleExpanded(chapter.id)} className="w-full flex items-center justify-between text-sm">
-                        <span className="text-ink-950"><span className="font-medium">{attemptCount}</span> attempt{attemptCount !== 1 ? 's' : ''} · avg <span className="font-medium">{avgPct}%</span></span>
-                        <svg className={`w-4 h-4 text-ink-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <span className="inline-flex items-center gap-1.5 text-ink-950">
+                          <Users className="w-4 h-4 text-brand-700" />
+                          <span className="font-medium">{attemptCount}</span> attempt{attemptCount !== 1 ? 's' : ''} · avg <span className="font-medium">{avgPct}%</span>
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-ink-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
                       {isExpanded && (
                         <ul className="flex flex-col gap-1.5 mt-3 pt-3 border-t border-slate-100">
@@ -162,6 +179,16 @@ function ManageBookChapters() {
       )}
       {isCreating && (
         <CreateChapterModal bookId={bookId} onClose={() => setIsCreating(false)} onCreated={handleChapterCreated} />
+      )}
+      {deletingChapter && (
+        <ConfirmModal
+          title="Delete this chapter?"
+          message={`"${deletingChapter.title}" and all of its student results will be permanently removed. This cannot be undone.`}
+          confirmLabel="Delete Chapter"
+          busyLabel="Deleting..."
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingChapter(null)}
+        />
       )}
     </div>
   );

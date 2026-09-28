@@ -168,6 +168,7 @@ export function ReviewerProvider({ children }) {
   return <ReviewerContext.Provider value={value}>{children}</ReviewerContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useReviewers() {
   return useContext(ReviewerContext)
 }

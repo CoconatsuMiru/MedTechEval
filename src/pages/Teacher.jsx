@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Library, Plus, Search, Trash2, Layers, BookOpen, Copy, Check, ArrowRight, CircleAlert } from 'lucide-react'
 import { useReviewers } from '../context/ReviewerContext'
 import { useToast } from '../context/ToastContext'
 import TopBar from '../components/TopBar'
 import CreateBookModal from '../components/CreateBookModal'
+import ConfirmModal from '../components/ConfirmModal'
 
 function Teacher() {
   const navigate = useNavigate()
@@ -15,6 +17,8 @@ function Teacher() {
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [copiedId, setCopiedId] = useState(null)
+  const [deletingBook, setDeletingBook] = useState(null) // { id, title } or null
 
   useEffect(() => { loadData() }, [])
 
@@ -29,16 +33,11 @@ function Teacher() {
     } finally { setLoading(false) }
   }
 
-  async function handleDelete(bookId, title) {
-    const confirmed = window.confirm(`Delete "${title}"? This removes all its chapters and student results. This cannot be undone.`)
-    if (!confirmed) return
-    try {
-      await deleteBook(bookId)
-      await loadData()
-    } catch (err) {
-      alert('Failed to delete book. Please try again.')
-      console.error(err)
-    }
+  async function handleConfirmDelete() {
+    await deleteBook(deletingBook.id) // if this throws, ConfirmModal shows the error
+    setDeletingBook(null)
+    showToast('Book deleted')
+    await loadData()
   }
 
   function handleBookCreated(book) {
@@ -47,36 +46,74 @@ function Teacher() {
     loadData()
   }
 
+  async function copyCode(book) {
+    try {
+      await navigator.clipboard.writeText(book.code)
+      setCopiedId(book.id)
+      setTimeout(() => setCopiedId(null), 1500)
+    } catch (err) { console.error(err) }
+  }
+
   const filteredBooks = books.filter((book) => {
     const term = searchTerm.trim().toLowerCase()
     if (!term) return true
     return book.title.toLowerCase().includes(term) || book.code.toLowerCase().includes(term)
   })
 
+  const totalChapters = books.reduce((sum, b) => sum + b.reviewers.length, 0)
+
   return (
     <div className="min-h-screen bg-app">
       <TopBar roleLabel="Teacher" />
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-ink-950">Your Books</h1>
-          <button onClick={() => setIsCreating(true)} className="bg-brand-900 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            + Create New Book
+        <div className="flex items-center justify-between mb-6 animate-fade-up">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center">
+              <Library className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-ink-950">Your Books</h1>
+              <p className="text-sm text-ink-500">Create books and fill them with chapters.</p>
+            </div>
+          </div>
+          <button onClick={() => setIsCreating(true)} className="inline-flex items-center gap-2 bg-brand-900 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors">
+            <Plus className="w-4 h-4" /> Create Book
           </button>
         </div>
 
         {!loading && books.length > 0 && (
-          <div className="relative mb-5">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 5.4 5.4a7.5 7.5 0 0 0 11.25 11.25Z" />
-            </svg>
-            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by title or code..."
-              className="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-700" />
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><BookOpen className="w-5 h-5" /></div>
+                <div><p className="text-2xl font-bold text-ink-950 leading-none">{books.length}</p><p className="text-xs text-ink-500 mt-1">Books</p></div>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Layers className="w-5 h-5" /></div>
+                <div><p className="text-2xl font-bold text-ink-950 leading-none">{totalChapters}</p><p className="text-xs text-ink-500 mt-1">Chapters</p></div>
+              </div>
+            </div>
+
+            <div className="relative mb-5">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-500" />
+              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by title or code..."
+                className="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-700" />
+            </div>
+          </>
         )}
 
         {loading && <p className="text-sm text-ink-500">Loading your books...</p>}
-        {error && <p className="mb-4 text-sm text-status-fail bg-status-fail-bg border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-        {!loading && books.length === 0 && !error && <p className="text-sm text-ink-500">You haven't created any books yet.</p>}
+        {error && (
+          <p className="flex items-center gap-2 mb-4 text-sm text-status-fail bg-status-fail-bg border border-red-200 rounded-lg px-3 py-2">
+            <CircleAlert className="w-4 h-4" /> {error}
+          </p>
+        )}
+        {!loading && books.length === 0 && !error && (
+          <div className="border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center bg-white/60">
+            <BookOpen className="w-8 h-8 text-ink-500 mx-auto mb-2" />
+            <p className="text-sm text-ink-500">You haven't created any books yet.</p>
+          </div>
+        )}
         {!loading && books.length > 0 && filteredBooks.length === 0 && (
           <p className="text-sm text-ink-500">No books match "<span className="font-medium">{searchTerm}</span>".</p>
         )}
@@ -85,23 +122,30 @@ function Teacher() {
           {filteredBooks.map((book) => {
             const createdDate = new Date(book.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
             return (
-              <div key={book.id} className="bg-white border border-slate-200 rounded-lg p-5 flex flex-col">
-                <div className="flex items-start justify-between mb-1">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-ink-950 truncate">{book.title}</h3>
-                    <p className="text-xs text-ink-500 mt-0.5">{book.reviewers.length} chapters · Created {createdDate}</p>
+              <div key={book.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-linear-to-br from-brand-900 to-sky-500 flex items-center justify-center shadow-sm flex-shrink-0">
+                    <BookOpen className="w-5 h-5 text-white" />
                   </div>
-                  <button onClick={() => handleDelete(book.id, book.title)} title="Delete"
-                    className="p-1.5 rounded-md text-ink-500 hover:text-status-fail hover:bg-status-fail-bg transition-colors flex-shrink-0 ml-2">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.166L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.166m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                    </svg>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-ink-950 leading-snug">{book.title}</h3>
+                    <p className="text-xs text-ink-500 mt-0.5">{book.reviewers.length} chapters · {createdDate}</p>
+                  </div>
+                  <button onClick={() => setDeletingBook({ id: book.id, title: book.title })} title="Delete"
+                    className="p-1.5 rounded-md text-ink-500 hover:text-status-fail hover:bg-status-fail-bg transition-colors flex-shrink-0">
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <span className="text-xs font-mono bg-brand-50 text-brand-900 px-2 py-0.5 rounded self-start mb-3">{book.code}</span>
+
+                <button onClick={() => copyCode(book)} title="Copy code"
+                  className="inline-flex items-center gap-1.5 self-start text-xs font-mono bg-brand-50 text-brand-900 hover:bg-blue-100 px-2 py-1 rounded transition-colors mb-3">
+                  {copiedId === book.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedId === book.id ? 'Copied' : book.code}
+                </button>
+
                 <button onClick={() => navigate(`/teacher/books/${book.id}`)}
-                  className="mt-auto text-sm text-brand-700 hover:underline text-left border-t border-slate-100 pt-3">
-                  Manage Chapters →
+                  className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:gap-2 transition-all border-t border-slate-100 pt-3">
+                  Manage Chapters <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             )
@@ -110,6 +154,17 @@ function Teacher() {
       </div>
 
       {isCreating && <CreateBookModal onClose={() => setIsCreating(false)} onCreated={handleBookCreated} />}
+
+      {deletingBook && (
+        <ConfirmModal
+          title="Delete this book?"
+          message={`"${deletingBook.title}" and all of its chapters and student results will be permanently removed. This cannot be undone.`}
+          confirmLabel="Delete Book"
+          busyLabel="Deleting..."
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingBook(null)}
+        />
+      )}
     </div>
   );
 }
